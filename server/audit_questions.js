@@ -1,6 +1,6 @@
 async function auditQuestions() {
   try {
-    const res = await fetch('http://localhost:5000/api/questions');
+    const res = await fetch('https://interview-coach-1-c6j6.onrender.com/api/questions');
     const questions = await res.json();
     console.log(`Total Questions: ${questions.length}`);
     

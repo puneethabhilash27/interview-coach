@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://interview-coach-1-c6j6.onrender.com/api';
 
 async function testAPI() {
   console.log('Testing Interview Coach API (Gamification Mode)...');

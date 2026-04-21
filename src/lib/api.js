@@ -1,7 +1,9 @@
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://interview-coach-1-c6j6.onrender.com';
+
 export const api = {
   async getQuestions() {
     try {
-      const res = await fetch('http://localhost:5000/api/questions');
+      const res = await fetch(`${BASE_URL}/api/questions`);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       return await res.json();
     } catch (err) {
@@ -12,7 +14,7 @@ export const api = {
 
   async getUserStats() {
     try {
-      const res = await fetch('http://localhost:5000/api/user/stats');
+      const res = await fetch(`${BASE_URL}/api/user/stats`);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       return await res.json();
     } catch (err) {
@@ -23,7 +25,7 @@ export const api = {
 
   async getLeaderboard() {
     try {
-      const res = await fetch('http://localhost:5000/api/leaderboard');
+      const res = await fetch(`${BASE_URL}/api/leaderboard`);
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       return await res.json();
     } catch (err) {
@@ -34,7 +36,7 @@ export const api = {
 
   async evaluateAnswer(question, answer) {
     try {
-      const res = await fetch('http://localhost:5000/api/evaluate', {
+      const res = await fetch(`${BASE_URL}/api/evaluate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question, answer }),
