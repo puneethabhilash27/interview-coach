@@ -1,6 +1,7 @@
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import Background from "@/components/Background";
 
 export const metadata = {
   title: "InterviewCoach AI | Master Your Interviews",
@@ -11,6 +12,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
+        <Background />
         <Navbar />
         <main>{children}</main>
         <Footer />

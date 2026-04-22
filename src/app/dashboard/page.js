@@ -2,6 +2,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { api, getUserName, setUserName, getRecentActivity, getBookmarks, getPerformanceMetrics } from '@/lib/api';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
 
 const SKILL_COLORS = [
   { bar: 'var(--indigo)', bg: 'rgba(99,102,241,0.10)' },
@@ -227,9 +238,9 @@ export default function Dashboard() {
       </div>
 
       {/* ─── Stats Grid ─── */}
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', marginBottom: '2.5rem' }}>
+      <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', marginBottom: '2.5rem' }}>
         {stats.map((stat, i) => (
-          <div key={i} className={`saas-card stagger-${i+1}`} style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', overflow: 'hidden' }}>
+          <motion.div variants={itemVariants} whileHover={{ y: -4, scale: 1.02 }} key={i} className="saas-card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', overflow: 'hidden' }}>
             <div className="radial-gauge" style={{ '--percentage': Math.round(stat.progress) }}>
               <div className="radial-gauge-value" style={{ color: stat.color }}><AnimatedNumber value={Math.round(stat.progress)} />%</div>
             </div>
@@ -246,9 +257,9 @@ export default function Dashboard() {
               </h2>
               <div style={{ fontSize: '0.75rem', color: stat.color, fontWeight: '600', marginTop: '0.25rem' }}>{stat.trend}</div>
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
 
       {/* ─── Radar Charts ─── */}
@@ -394,87 +405,93 @@ export default function Dashboard() {
             ))}
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', maxHeight: '400px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {activeTab === 'recent' ? (
-              recentActivity.length > 0 ? (
-                recentActivity.slice(0, 10).map((a, i) => (
-                  <div key={i} onClick={() => setExpandedActivity(expandedActivity === i ? null : i)} style={{
-                    display: 'flex', flexDirection: 'column', flexShrink: 0,
-                    padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '0.75rem',
-                    border: '1px solid var(--border)', cursor: 'pointer', transition: 'all 0.2s',
-                    boxShadow: expandedActivity === i ? 'var(--shadow-sm)' : 'none',
-                    borderColor: expandedActivity === i ? 'rgba(99,102,241,0.3)' : 'var(--border)'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: '700', color: 'var(--foreground)', marginBottom: '0.25rem', fontSize: '0.9rem', lineHeight: '1.4' }}>
-                          {a.question}
+          <motion.div variants={containerVariants} initial="hidden" animate="show" style={{ flex: 1, overflowY: 'auto', maxHeight: '400px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <AnimatePresence mode="wait">
+              {activeTab === 'recent' ? (
+                recentActivity.length > 0 ? (
+                  recentActivity.slice(0, 10).map((a, i) => (
+                    <motion.div variants={itemVariants} layout key={i} onClick={() => setExpandedActivity(expandedActivity === i ? null : i)} style={{
+                      display: 'flex', flexDirection: 'column', flexShrink: 0,
+                      padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: '0.75rem',
+                      border: '1px solid var(--border)', cursor: 'pointer', transition: 'all 0.2s',
+                      boxShadow: expandedActivity === i ? 'var(--shadow-sm)' : 'none',
+                      borderColor: expandedActivity === i ? 'rgba(99,102,241,0.3)' : 'var(--border)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: '700', color: 'var(--foreground)', marginBottom: '0.25rem', fontSize: '0.9rem', lineHeight: '1.4' }}>
+                            {a.question}
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: getDiffColor(a.difficulty), textTransform: 'uppercase' }}>{a.difficulty}</span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>{a.category}</span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', opacity: 0.7 }}>• {timeAgo(a.timestamp)}</span>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '0.7rem', fontWeight: '800', color: getDiffColor(a.difficulty), textTransform: 'uppercase' }}>{a.difficulty}</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>{a.category}</span>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)', opacity: 0.7 }}>• {timeAgo(a.timestamp)}</span>
-                        </div>
-                      </div>
-                      <div style={{
-                        padding: '0.4rem 0.75rem', borderRadius: '0.5rem', fontWeight: '800', fontSize: '0.9rem', flexShrink: 0, marginLeft: '1rem',
-                        background: a.score >= 70 ? 'rgba(16,185,129,0.15)' : a.score >= 40 ? 'rgba(245,158,11,0.15)' : 'rgba(244,63,94,0.15)',
-                        color: a.score >= 70 ? 'var(--emerald)' : a.score >= 40 ? 'var(--amber)' : 'var(--rose)',
-                        boxShadow: 'inset 0 0 0 1px currentColor'
-                      }}>
-                        {a.score}%
-                      </div>
-                    </div>
-                    {expandedActivity === i && (
-                      <div className="animate-fade-in" style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--indigo)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Your Answer</div>
-                          {a.questionId && (
-                            <Link href={`/practice?q=${a.questionId}`} style={{ fontSize: '0.8rem', color: 'var(--cyan)', fontWeight: '700', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                              Practice Again <span>→</span>
-                            </Link>
-                          )}
-                        </div>
-                        <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)', fontStyle: 'italic', lineHeight: '1.6', whiteSpace: 'pre-wrap', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '0.5rem' }}>
-                          {a.answer ? `"${a.answer}"` : 'No answer recorded.'}
+                        <div style={{
+                          padding: '0.4rem 0.75rem', borderRadius: '0.5rem', fontWeight: '800', fontSize: '0.9rem', flexShrink: 0, marginLeft: '1rem',
+                          background: a.score >= 70 ? 'rgba(16,185,129,0.15)' : a.score >= 40 ? 'rgba(245,158,11,0.15)' : 'rgba(244,63,94,0.15)',
+                          color: a.score >= 70 ? 'var(--emerald)' : a.score >= 40 ? 'var(--amber)' : 'var(--rose)',
+                          boxShadow: 'inset 0 0 0 1px currentColor'
+                        }}>
+                          {a.score}%
                         </div>
                       </div>
-                    )}
-                  </div>
-                ))
+                      <AnimatePresence>
+                        {expandedActivity === i && (
+                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)', overflow: 'hidden' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--indigo)', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Your Answer</div>
+                              {a.questionId && (
+                                <Link href={`/practice?q=${a.questionId}`} style={{ fontSize: '0.8rem', color: 'var(--cyan)', fontWeight: '700', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                  Practice Again <span>→</span>
+                                </Link>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.8)', fontStyle: 'italic', lineHeight: '1.6', whiteSpace: 'pre-wrap', background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '0.5rem' }}>
+                              {a.answer ? `"${a.answer}"` : 'No answer recorded.'}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  ))
+                ) : (
+                  <motion.div variants={itemVariants} style={{ padding: '3rem', textAlign: 'center', opacity: 0.5 }}>
+                    <p style={{ margin: 0, fontWeight: '600', fontSize: '0.95rem' }}>No recent activity yet</p>
+                  </motion.div>
+                )
               ) : (
-                <div style={{ padding: '3rem', textAlign: 'center', opacity: 0.5 }}>
-                  <p style={{ margin: 0, fontWeight: '600', fontSize: '0.95rem' }}>No recent activity yet</p>
-                </div>
-              )
-            ) : (
-              bookmarks.length > 0 ? (
-                bookmarks.map((b, i) => (
-                  <Link href={`/practice?q=${b.id}`} key={i} style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
-                    padding: '1rem', background: 'rgba(245,158,11,0.05)', borderRadius: '0.75rem',
-                    border: '1px solid rgba(245,158,11,0.15)', textDecoration: 'none', color: 'inherit',
-                    transition: 'var(--transition-smooth)',
-                  }} className="hover:translate-y-[-2px] hover:shadow-sm">
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: '700', color: 'var(--foreground)', marginBottom: '0.25rem', fontSize: '0.9rem', lineHeight: '1.4' }}>
-                        🔖 {b.question}
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: '800', color: getDiffColor(b.difficulty), textTransform: 'uppercase' }}>{b.difficulty}</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>{b.category}</span>
-                      </div>
-                    </div>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--indigo)', fontWeight: '700', flexShrink: 0, padding: '0.4rem 0.75rem', background: 'rgba(99,102,241,0.1)', borderRadius: '0.5rem' }}>Practice →</span>
-                  </Link>
-                ))
-              ) : (
-                <div style={{ padding: '3rem', textAlign: 'center', opacity: 0.5 }}>
-                  <p style={{ margin: 0, fontWeight: '600', fontSize: '0.95rem' }}>No bookmarks yet — bookmark questions in Practice</p>
-                </div>
-              )
-            )}
-          </div>
+                bookmarks.length > 0 ? (
+                  bookmarks.map((b, i) => (
+                    <motion.div key={i} variants={itemVariants}>
+                      <Link href={`/practice?q=${b.id}`} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
+                        padding: '1rem', background: 'rgba(245,158,11,0.05)', borderRadius: '0.75rem',
+                        border: '1px solid rgba(245,158,11,0.15)', textDecoration: 'none', color: 'inherit',
+                        transition: 'var(--transition-smooth)',
+                      }} className="hover:translate-y-[-2px] hover:shadow-sm">
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: '700', color: 'var(--foreground)', marginBottom: '0.25rem', fontSize: '0.9rem', lineHeight: '1.4' }}>
+                            🔖 {b.question}
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.7rem', fontWeight: '800', color: getDiffColor(b.difficulty), textTransform: 'uppercase' }}>{b.difficulty}</span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>{b.category}</span>
+                          </div>
+                        </div>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--indigo)', fontWeight: '700', flexShrink: 0, padding: '0.4rem 0.75rem', background: 'rgba(99,102,241,0.1)', borderRadius: '0.5rem' }}>Practice →</span>
+                      </Link>
+                    </motion.div>
+                  ))
+                ) : (
+                  <motion.div variants={itemVariants} style={{ padding: '3rem', textAlign: 'center', opacity: 0.5 }}>
+                    <p style={{ margin: 0, fontWeight: '600', fontSize: '0.95rem' }}>No bookmarks yet — bookmark questions in Practice</p>
+                  </motion.div>
+                )
+              )}
+            </AnimatePresence>
+          </motion.div>
         </div>
 
         {/* Right Column */}

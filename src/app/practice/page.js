@@ -2,6 +2,22 @@
 import { useState, useEffect, useRef } from 'react';
 import { api, getBookmarks, toggleBookmark, getRecentActivity } from '@/lib/api';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const listVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.05 } }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -20 },
+  show: { opacity: 1, x: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
+
+const popVariants = {
+  hidden: { opacity: 0, scale: 0.8 },
+  show: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 400, damping: 20 } }
+};
 
 export default function Practice() {
   const [questions, setQuestions] = useState([]);
@@ -222,132 +238,155 @@ export default function Practice() {
             </button>
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.25rem', paddingRight: '0.25rem' }}>
-            {filteredQuestions.map((q) => (
-              <div key={q.id} onClick={() => { 
-                setSelectedQuestion(q); 
-                setEvaluation(null); 
-                const recent = getRecentActivity();
-                const pastActivity = recent.find(a => a.questionId === q.id);
-                setAnswer(pastActivity ? pastActivity.answer || "" : "");
-              }}
-                style={{
-                  textAlign: 'left', padding: '0.75rem', cursor: 'pointer',
-                  background: selectedQuestion?.id === q.id ? 'var(--card-hover)' : 'var(--card)',
-                  border: `1px solid ${selectedQuestion?.id === q.id ? 'var(--indigo)' : 'var(--card-border)'}`,
-                  borderRadius: '0.5rem', flexShrink: 0,
-                  display: 'flex', flexDirection: 'column', gap: '0.25rem'
-                }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.7rem', fontWeight: '800', color: getDiffColor(q.difficulty), textTransform: 'uppercase', letterSpacing: '0.05em' }}>{q.difficulty}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <span onClick={(e) => handleToggleBookmark(e, q)}
-                      style={{ cursor: 'pointer', fontSize: '0.75rem', color: bookmarks.some(b => b.id === q.id) ? 'var(--rose)' : 'var(--muted-foreground)' }}>
-                      {bookmarks.some(b => b.id === q.id) ? '📌' : '☆'} Save
-                    </span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--cyan)', fontWeight: '600' }}>⏱ {q.duration || "N/A"}</span>
+          <motion.div variants={listVariants} initial="hidden" animate="show" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.25rem', paddingRight: '0.25rem' }}>
+            <AnimatePresence>
+              {filteredQuestions.map((q) => (
+                <motion.div key={q.id} variants={itemVariants} layout onClick={() => { 
+                  setSelectedQuestion(q); 
+                  setEvaluation(null); 
+                  const recent = getRecentActivity();
+                  const pastActivity = recent.find(a => a.questionId === q.id);
+                  setAnswer(pastActivity ? pastActivity.answer || "" : "");
+                }}
+                  style={{
+                    textAlign: 'left', padding: '0.75rem', cursor: 'pointer',
+                    background: selectedQuestion?.id === q.id ? 'var(--card-hover)' : 'var(--card)',
+                    border: `1px solid ${selectedQuestion?.id === q.id ? 'var(--indigo)' : 'var(--card-border)'}`,
+                    borderRadius: '0.5rem', flexShrink: 0,
+                    display: 'flex', flexDirection: 'column', gap: '0.25rem'
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: '800', color: getDiffColor(q.difficulty), textTransform: 'uppercase', letterSpacing: '0.05em' }}>{q.difficulty}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span onClick={(e) => handleToggleBookmark(e, q)}
+                        style={{ cursor: 'pointer', fontSize: '0.75rem', color: bookmarks.some(b => b.id === q.id) ? 'var(--rose)' : 'var(--muted-foreground)' }}>
+                        {bookmarks.some(b => b.id === q.id) ? '📌' : '☆'} Save
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--cyan)', fontWeight: '600' }}>⏱ {q.duration || "N/A"}</span>
+                    </div>
                   </div>
-                </div>
-                <div style={{ fontSize: '0.85rem', fontWeight: '600', lineHeight: '1.2', color: selectedQuestion?.id === q.id ? 'var(--foreground)' : 'var(--foreground)' }}>
-                  {q.question}
-                </div>
-              </div>
-            ))}
-          </div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: '600', lineHeight: '1.2', color: selectedQuestion?.id === q.id ? 'var(--foreground)' : 'var(--foreground)' }}>
+                    {q.question}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         </aside>
 
         {/* ─── CENTER: Editor + Helpers ─── */}
         <main style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {selectedQuestion ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {/* Question Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginBottom: '0.25rem', fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                    <span style={{ padding: '0.1rem 0.4rem', borderRadius: '0.2rem', background: 'rgba(99,102,241,0.15)', color: 'var(--indigo)', fontWeight: '600' }}>{selectedQuestion.category}</span>
-                    <span>• {selectedQuestion.type}</span>
-                    <span style={{ color: 'var(--cyan)' }}>• ⏱ {selectedQuestion.duration}</span>
+          <AnimatePresence mode="wait">
+            {selectedQuestion ? (
+              <motion.div 
+                key={selectedQuestion.id}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+              >
+                {/* Question Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginBottom: '0.25rem', fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
+                      <span style={{ padding: '0.1rem 0.4rem', borderRadius: '0.2rem', background: 'rgba(99,102,241,0.15)', color: 'var(--indigo)', fontWeight: '600' }}>{selectedQuestion.category}</span>
+                      <span>• {selectedQuestion.type}</span>
+                      <span style={{ color: 'var(--cyan)' }}>• ⏱ {selectedQuestion.duration}</span>
+                    </div>
+                    <h1 style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: '1.2', margin: 0, display: 'flex', gap: '0.4rem' }}>
+                      <span>👋</span> {selectedQuestion.question}
+                    </h1>
                   </div>
-                  <h1 style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: '1.2', margin: 0, display: 'flex', gap: '0.4rem' }}>
-                    <span>👋</span> {selectedQuestion.question}
-                  </h1>
+                  <motion.button whileTap={{ scale: 0.9 }} onClick={(e) => handleToggleBookmark(e, selectedQuestion)}
+                    style={{ background: 'var(--card)', border: '1px solid var(--border)', padding: '0.3rem 0.6rem', borderRadius: '0.4rem', color: 'var(--foreground)', fontSize: '0.75rem', cursor: 'pointer' }}>
+                    {bookmarks.some(b => b.id === selectedQuestion.id) ? '📌 Saved' : '☆ Bookmark'}
+                  </motion.button>
                 </div>
-                <button onClick={(e) => handleToggleBookmark(e, selectedQuestion)}
-                  style={{ background: 'var(--card)', border: '1px solid var(--border)', padding: '0.3rem 0.6rem', borderRadius: '0.4rem', color: 'var(--foreground)', fontSize: '0.75rem', cursor: 'pointer' }}>
-                  {bookmarks.some(b => b.id === selectedQuestion.id) ? '📌 Saved' : '☆ Bookmark'}
-                </button>
-              </div>
 
-              {/* Enhanced Editor */}
-              <div style={{ background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: '0.75rem', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <textarea value={answer} onChange={(e) => setAnswer(e.target.value)}
-                  placeholder="Construct your response using the STAR method..."
-                  style={{ width: '100%', minHeight: '250px', padding: '1rem', background: 'transparent', border: 'none', fontSize: '0.9rem', lineHeight: '1.5', color: 'var(--foreground)', resize: 'none', outline: 'none' }} />
-                
-                <div style={{ padding: '0.5rem 1rem', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-                    <span style={{ color: 'var(--foreground)', fontWeight: '700' }}>{answer.trim().split(/\s+/).filter(x => x).length}</span> words • <span style={{ color: 'var(--foreground)', fontWeight: '700' }}>{answer.length}</span> chars
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.4rem' }}>
-                    <button onClick={toggleListen}
-                      style={{ background: isListening ? 'rgba(244, 63, 94, 0.15)' : 'rgba(255,255,255,0.05)', border: `1px solid ${isListening ? 'var(--rose)' : 'var(--border)'}`, color: isListening ? 'var(--rose)' : 'var(--foreground)', padding: '0.4rem 0.75rem', borderRadius: '0.4rem', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      🎤 Dictate
-                    </button>
-                    <button onClick={() => setAnswer(selectedQuestion.sampleAnswer)}
-                      style={{ background: 'rgba(6, 182, 212, 0.1)', border: '1px dashed var(--cyan)', color: 'var(--cyan)', padding: '0.4rem 0.75rem', borderRadius: '0.4rem', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      ✨ Ask Coach
-                    </button>
-                    <button onClick={handleEvaluate} disabled={!answer.trim() || isEvaluating}
-                      style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'var(--foreground)', padding: '0.4rem 1rem', borderRadius: '0.4rem', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', opacity: !answer.trim() || isEvaluating ? 0.5 : 1 }}>
-                      🚀 Evaluate
-                    </button>
+                {/* Enhanced Editor */}
+                <div style={{ background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: '0.75rem', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  <textarea value={answer} onChange={(e) => setAnswer(e.target.value)}
+                    placeholder="Construct your response using the STAR method..."
+                    style={{ width: '100%', minHeight: '250px', padding: '1rem', background: 'transparent', border: 'none', fontSize: '0.9rem', lineHeight: '1.5', color: 'var(--foreground)', resize: 'none', outline: 'none' }} />
+                  
+                  <div style={{ padding: '0.5rem 1rem', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
+                      <span style={{ color: 'var(--foreground)', fontWeight: '700' }}>{answer.trim().split(/\s+/).filter(x => x).length}</span> words • <span style={{ color: 'var(--foreground)', fontWeight: '700' }}>{answer.length}</span> chars
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={toggleListen}
+                        style={{ background: isListening ? 'rgba(244, 63, 94, 0.15)' : 'rgba(255,255,255,0.05)', border: `1px solid ${isListening ? 'var(--rose)' : 'var(--border)'}`, color: isListening ? 'var(--rose)' : 'var(--foreground)', padding: '0.4rem 0.75rem', borderRadius: '0.4rem', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        🎤 Dictate
+                      </motion.button>
+                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setAnswer(selectedQuestion.sampleAnswer)}
+                        style={{ background: 'rgba(6, 182, 212, 0.1)', border: '1px dashed var(--cyan)', color: 'var(--cyan)', padding: '0.4rem 0.75rem', borderRadius: '0.4rem', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        ✨ Ask Coach
+                      </motion.button>
+                      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleEvaluate} disabled={!answer.trim() || isEvaluating}
+                        style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'var(--foreground)', padding: '0.4rem 1rem', borderRadius: '0.4rem', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', opacity: !answer.trim() || isEvaluating ? 0.5 : 1 }}>
+                        🚀 Evaluate
+                      </motion.button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Compact Helper Strip */}
-              <div style={{ background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: '0.75rem', padding: '0.75rem 1rem', display: 'flex', gap: '1rem' }}>
-                <div style={{ flexShrink: 0 }}>
-                  <div style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--purple)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
-                    📋 STAR
+                {/* Compact Helper Strip */}
+                <div style={{ background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: '0.75rem', padding: '0.75rem 1rem', display: 'flex', gap: '1rem' }}>
+                  <div style={{ flexShrink: 0 }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--purple)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
+                      📋 STAR
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem' }}>
+                      <span><span style={{ color: 'var(--cyan)', fontWeight: '700' }}>S</span> Situation</span>
+                      <span><span style={{ color: 'var(--emerald)', fontWeight: '700' }}>T</span> Task</span>
+                      <span><span style={{ color: 'var(--amber)', fontWeight: '700' }}>A</span> Action</span>
+                      <span><span style={{ color: 'var(--rose)', fontWeight: '700' }}>R</span> Result</span>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem' }}>
-                    <span><span style={{ color: 'var(--cyan)', fontWeight: '700' }}>S</span> Situation</span>
-                    <span><span style={{ color: 'var(--emerald)', fontWeight: '700' }}>T</span> Task</span>
-                    <span><span style={{ color: 'var(--amber)', fontWeight: '700' }}>A</span> Action</span>
-                    <span><span style={{ color: 'var(--rose)', fontWeight: '700' }}>R</span> Result</span>
+                  <div style={{ width: '1px', background: 'var(--border)', alignSelf: 'stretch' }}></div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--emerald)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
+                      🎯 TARGET KEYWORDS
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                      {getKeywords(selectedQuestion.sampleAnswer).slice(0, 8).map((word, i) => (
+                        <span key={i} style={{ padding: '0.15rem 0.4rem', borderRadius: '0.2rem', background: 'rgba(255,255,255,0.05)', fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>{word}</span>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                <div style={{ width: '1px', background: 'var(--border)', alignSelf: 'stretch' }}></div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--emerald)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.3rem' }}>
-                    🎯 TARGET KEYWORDS
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                    {getKeywords(selectedQuestion.sampleAnswer).slice(0, 8).map((word, i) => (
-                      <span key={i} style={{ padding: '0.15rem 0.4rem', borderRadius: '0.2rem', background: 'rgba(255,255,255,0.05)', fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>{word}</span>
-                    ))}
-                  </div>
-                </div>
-              </div>
 
-              {/* Bottom Helpers */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.75rem' }}>
-                <div style={{ background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: '0.75rem', padding: '0.75rem 1rem', fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>
-                  <strong style={{ color: 'var(--amber)' }}>💡 Hint:</strong> {selectedQuestion.sampleAnswer.substring(0, 80)}... <span style={{ color: 'var(--cyan)', cursor: 'pointer' }} onClick={() => setAnswer(selectedQuestion.sampleAnswer)}>Use "Ask Coach" for full answer</span>
+                {/* Bottom Helpers */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.75rem' }}>
+                  <div style={{ background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: '0.75rem', padding: '0.75rem 1rem', fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>
+                    <strong style={{ color: 'var(--amber)' }}>💡 Hint:</strong> {selectedQuestion.sampleAnswer.substring(0, 80)}... <span style={{ color: 'var(--cyan)', cursor: 'pointer' }} onClick={() => setAnswer(selectedQuestion.sampleAnswer)}>Use "Ask Coach" for full answer</span>
+                  </div>
+                  <div style={{ background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: '0.75rem', padding: '0.75rem 1rem', display: 'flex', gap: '0.75rem', alignItems: 'center', fontSize: '0.8rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ color: 'var(--rose)' }}>⚡</span> <strong>45+</strong> words</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ color: 'var(--emerald)' }}>📊</span> <strong>80/20</strong> scoring</div>
+                  </div>
                 </div>
-                <div style={{ background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: '0.75rem', padding: '0.75rem 1rem', display: 'flex', gap: '0.75rem', alignItems: 'center', fontSize: '0.8rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ color: 'var(--rose)' }}>⚡</span> <strong>45+</strong> words</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><span style={{ color: 'var(--emerald)' }}>📊</span> <strong>80/20</strong> scoring</div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'var(--card)', borderRadius: '0.75rem', border: '1px dashed var(--border)', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ fontSize: '2.5rem', opacity: 0.5, marginBottom: '0.75rem' }}>👈</div>
-              <h2 style={{ color: 'var(--muted-foreground)', fontSize: '1.1rem' }}>Select a question from the library to begin</h2>
-            </div>
-          )}
+              </motion.div>
+            ) : (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                style={{ textAlign: 'center', padding: '4rem 2rem', background: 'var(--card)', borderRadius: '0.75rem', border: '1px dashed var(--border)', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <motion.div 
+                  animate={{ x: [-10, 0, -10] }}
+                  transition={{ repeat: Infinity, duration: 1.5 }}
+                  style={{ fontSize: '2.5rem', opacity: 0.5, marginBottom: '0.75rem' }}
+                >👈</motion.div>
+                <h2 style={{ color: 'var(--muted-foreground)', fontSize: '1.1rem' }}>Select a question from the library to begin</h2>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </main>
 
         {/* ─── RIGHT: Insights & Stats ─── */}
@@ -355,12 +394,12 @@ export default function Practice() {
           
           <div style={{ background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: '0.75rem', padding: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '160px', textAlign: 'center' }}>
             {isEvaluating ? (
-              <>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <div className="spinner" style={{ marginBottom: '0.75rem' }}></div>
                 <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>Analyzing response...</p>
-              </>
+              </motion.div>
             ) : evaluation ? (
-              <div style={{ width: '100%' }}>
+              <motion.div variants={popVariants} initial="hidden" animate="show" style={{ width: '100%' }}>
                 <div style={{ fontSize: '1.75rem', fontWeight: '800', color: 'var(--indigo)', marginBottom: '0.4rem' }}>{evaluation.score}%</div>
                 <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--emerald)', marginBottom: '0.75rem' }}>{evaluation.badge} Match</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', textAlign: 'left', fontSize: '0.75rem' }}>
@@ -371,12 +410,12 @@ export default function Practice() {
                     <div key={i} style={{ color: 'var(--amber)' }}>→ {s}</div>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             ) : (
-              <>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                 <div style={{ fontSize: '2rem', marginBottom: '0.75rem', opacity: 0.8 }}>📊</div>
                 <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--muted-foreground)' }}>AI insights appear here<br/>after you evaluate an answer.</p>
-              </>
+              </motion.div>
             )}
           </div>
 

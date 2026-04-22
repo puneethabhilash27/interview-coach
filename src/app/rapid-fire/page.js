@@ -2,6 +2,34 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '@/lib/api';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
+
+const slideVariants = {
+  enter: (direction) => ({
+    x: direction > 0 ? 1000 : -1000,
+    opacity: 0
+  }),
+  center: {
+    zIndex: 1,
+    x: 0,
+    opacity: 1
+  },
+  exit: (direction) => ({
+    zIndex: 0,
+    x: direction < 0 ? 1000 : -1000,
+    opacity: 0
+  })
+};
 
 const TOTAL_QUESTIONS = 5;
 const TOTAL_TIME = 300; // 5 minutes
@@ -228,22 +256,22 @@ export default function RapidFire() {
         Answer {TOTAL_QUESTIONS} random questions in {TOTAL_TIME / 60} minutes. Think fast, type faster. Your performance is evaluated by AI after completion.
       </p>
       
-      <div className="grid stagger-1" style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', marginBottom: '3rem', textAlign: 'center' }}>
-        <div className="saas-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
+      <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid" style={{ gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', marginBottom: '3rem', textAlign: 'center' }}>
+        <motion.div variants={itemVariants} className="saas-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
           <div style={{ fontSize: '2.5rem', fontWeight: '800', color: 'var(--indigo)' }}>{TOTAL_QUESTIONS}</div>
           <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Questions</div>
-        </div>
-        <div className="saas-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
+        </motion.div>
+        <motion.div variants={itemVariants} className="saas-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
           <div style={{ fontSize: '2.5rem', fontWeight: '800', color: 'var(--amber)' }}>{TOTAL_TIME / 60}:00</div>
           <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Time Limit</div>
-        </div>
-        <div className="saas-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
+        </motion.div>
+        <motion.div variants={itemVariants} className="saas-card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
           <div style={{ fontSize: '2.5rem', fontWeight: '800', color: 'var(--emerald)' }}>AI</div>
           <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Evaluated</div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
-      <div className="saas-card stagger-2" style={{ marginBottom: '3rem', textAlign: 'left' }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="saas-card" style={{ marginBottom: '3rem', textAlign: 'left' }}>
         <h3 style={{ fontSize: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ fontSize: '1.25rem' }}>🎮</span> How it Works</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.9rem', color: 'var(--muted-foreground)' }}>
           <div style={{ display: 'flex', gap: '0.75rem' }}><span style={{ color: 'var(--indigo)', fontWeight: '800' }}>1.</span> <span>You get <strong style={{ color: 'var(--foreground)' }}>{TOTAL_QUESTIONS} random questions</strong> from all categories</span></div>
@@ -251,11 +279,11 @@ export default function RapidFire() {
           <div style={{ display: 'flex', gap: '0.75rem' }}><span style={{ color: 'var(--indigo)', fontWeight: '800' }}>3.</span> <span>Navigate freely between questions. Answer in any order</span></div>
           <div style={{ display: 'flex', gap: '0.75rem' }}><span style={{ color: 'var(--indigo)', fontWeight: '800' }}>4.</span> <span>AI evaluates all answers and gives you a <strong style={{ color: 'var(--foreground)' }}>detailed scorecard</strong></span></div>
         </div>
-      </div>
+      </motion.div>
 
-      <button onClick={startGame} className="glow-button stagger-3" style={{ padding: '1rem 4rem', fontSize: '1.1rem' }} disabled={allQuestions.length < TOTAL_QUESTIONS}>
+      <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={startGame} className="glow-button stagger-3" style={{ padding: '1rem 4rem', fontSize: '1.1rem' }} disabled={allQuestions.length < TOTAL_QUESTIONS}>
         ⚡ Start Rapid Fire
-      </button>
+      </motion.button>
       {allQuestions.length < TOTAL_QUESTIONS && <p style={{ fontSize: '0.8rem', color: 'var(--rose)', marginTop: '1rem' }}>Loading questions...</p>}
     </div>
   );
@@ -286,35 +314,35 @@ export default function RapidFire() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid stagger-1" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
-          <div className="saas-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '3rem' }}>
+          <motion.div variants={itemVariants} className="saas-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
             <div className="radial-gauge" style={{ '--percentage': totalScore, width: '100px', height: '100px', marginBottom: '1rem', background: `conic-gradient(${grade.color} calc(var(--percentage) * 1%), rgba(255, 255, 255, 0.05) 0)` }}>
               <div className="radial-gauge-value" style={{ color: grade.color, fontSize: '1.5rem' }}><AnimatedNumber value={totalScore} />%</div>
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avg Score</div>
             <div style={{ fontSize: '0.85rem', fontWeight: '800', color: grade.color, marginTop: '0.25rem' }}>{grade.label}</div>
-          </div>
-          <div className="saas-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
+          </motion.div>
+          <motion.div variants={itemVariants} className="saas-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
             <div style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--indigo)', marginBottom: '0.5rem' }}>+<AnimatedNumber value={totalXP} /></div>
             <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>XP Earned</div>
-          </div>
-          <div className="saas-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
+          </motion.div>
+          <motion.div variants={itemVariants} className="saas-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
             <div style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--amber)', marginBottom: '0.5rem' }}><AnimatedNumber value={streak} />🔥</div>
             <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Best Streak</div>
-          </div>
-          <div className="saas-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
+          </motion.div>
+          <motion.div variants={itemVariants} className="saas-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
             <div style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--emerald)', marginBottom: '0.5rem' }}><AnimatedNumber value={perfectCount} />/<AnimatedNumber value={TOTAL_QUESTIONS} /></div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Aced (80%+)</div>
-          </div>
-        </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Aced (80%)</div>
+          </motion.div>
+        </motion.div>
 
         {/* Per-Question Results */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '3rem' }}>
-          <h2 className="stagger-2" style={{ fontSize: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem', marginBottom: '0.5rem' }}>Detailed Breakdown</h2>
+        <motion.div variants={containerVariants} initial="hidden" animate="show" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '3rem' }}>
+          <h2 style={{ fontSize: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem', marginBottom: '0.5rem' }}>Detailed Breakdown</h2>
           {results.map((r, i) => {
             const g = getGrade(r.score);
             return (
-              <div key={i} className={`saas-card stagger-${(i % 5) + 2}`} style={{ padding: '1.5rem' }}>
+              <motion.div variants={itemVariants} key={i} className="saas-card" style={{ padding: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                   <div style={{ flex: 1, paddingRight: '2rem' }}>
                     <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -358,10 +386,10 @@ export default function RapidFire() {
                     {r.matchedKeywords.map((k, j) => <span key={j} style={{ padding: '0.2rem 0.6rem', borderRadius: '0.5rem', background: 'rgba(16,185,129,0.1)', color: 'var(--emerald)', fontSize: '0.75rem', fontWeight: '700' }}>{k}</span>)}
                   </div>
                 )}
-              </div>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center' }} className="animate-fade-in">
@@ -409,72 +437,87 @@ export default function RapidFire() {
       </div>
 
       {/* Question Card */}
-      <div className="saas-card animate-fade-in" style={{ marginBottom: '1.5rem', padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }} key={currentIdx}>
-        <div style={{ padding: '2rem 2rem 1.5rem 2rem', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '1rem' }}>
-            <span style={{ padding: '0.25rem 0.75rem', borderRadius: '1rem', background: 'rgba(99,102,241,0.1)', color: 'var(--indigo)', fontSize: '0.75rem', fontWeight: '800' }}>{q?.category}</span>
-            <span style={{ fontSize: '0.75rem', fontWeight: '800', color: getDiffColor(q?.difficulty), textTransform: 'uppercase' }}>{q?.difficulty}</span>
-            <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--muted-foreground)', fontWeight: '600' }}>Question {currentIdx + 1} of {TOTAL_QUESTIONS}</span>
-          </div>
-          <h2 style={{ fontSize: '1.5rem', margin: 0, lineHeight: '1.4' }}>{q?.question}</h2>
-        </div>
+      <div style={{ overflow: 'hidden', position: 'relative' }}>
+        <AnimatePresence initial={false} custom={1} mode="wait">
+          <motion.div 
+            key={currentIdx}
+            custom={1}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              x: { type: "spring", stiffness: 300, damping: 30 },
+              opacity: { duration: 0.2 }
+            }}
+            className="saas-card" style={{ marginBottom: '1.5rem', padding: 0, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '2rem 2rem 1.5rem 2rem', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '1rem' }}>
+                <span style={{ padding: '0.25rem 0.75rem', borderRadius: '1rem', background: 'rgba(99,102,241,0.1)', color: 'var(--indigo)', fontSize: '0.75rem', fontWeight: '800' }}>{q?.category}</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: '800', color: getDiffColor(q?.difficulty), textTransform: 'uppercase' }}>{q?.difficulty}</span>
+                <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--muted-foreground)', fontWeight: '600' }}>Question {currentIdx + 1} of {TOTAL_QUESTIONS}</span>
+              </div>
+              <h2 style={{ fontSize: '1.5rem', margin: 0, lineHeight: '1.4' }}>{q?.question}</h2>
+            </div>
 
-        <div style={{ position: 'relative', flex: 1 }}>
-          <textarea
-            value={answers[currentIdx]}
-            onChange={(e) => handleAnswerChange(e.target.value)}
-            placeholder="Type your answer quickly..."
-            style={{ width: '100%', minHeight: '250px', padding: '2rem', background: 'transparent', border: 'none', fontSize: '1.1rem', lineHeight: '1.8', color: 'var(--foreground)', resize: 'none', outline: 'none' }}
-          />
-          {/* Typing Indicator Glow */}
-          {isListening && (
-            <div style={{ position: 'absolute', bottom: '1rem', left: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(99,102,241,0.1)', padding: '0.5rem 1rem', borderRadius: '2rem', border: '1px solid rgba(99,102,241,0.2)' }}>
-              <span className="badge-glow" style={{ fontSize: '0.8rem' }}>🎤</span>
-              <span style={{ fontSize: '0.8rem', color: 'var(--indigo)', fontWeight: '600' }}>Listening</span>
-              <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.25rem' }}>
-                <span className="typing-dot"></span><span className="typing-dot"></span><span className="typing-dot"></span>
+            <div style={{ position: 'relative', flex: 1 }}>
+              <textarea
+                value={answers[currentIdx]}
+                onChange={(e) => handleAnswerChange(e.target.value)}
+                placeholder="Type your answer quickly..."
+                style={{ width: '100%', minHeight: '250px', padding: '2rem', background: 'transparent', border: 'none', fontSize: '1.1rem', lineHeight: '1.8', color: 'var(--foreground)', resize: 'none', outline: 'none' }}
+              />
+              {/* Typing Indicator Glow */}
+              {isListening && (
+                <div style={{ position: 'absolute', bottom: '1rem', left: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(99,102,241,0.1)', padding: '0.5rem 1rem', borderRadius: '2rem', border: '1px solid rgba(99,102,241,0.2)' }}>
+                  <span className="badge-glow" style={{ fontSize: '0.8rem' }}>🎤</span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--indigo)', fontWeight: '600' }}>Listening</span>
+                  <div style={{ display: 'flex', gap: '0.25rem', marginLeft: '0.25rem' }}>
+                    <span className="typing-dot"></span><span className="typing-dot"></span><span className="typing-dot"></span>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div style={{ padding: '1rem 2rem', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)' }}>
+                <span style={{ color: 'var(--foreground)', fontWeight: '800' }}>{answers[currentIdx].trim().split(/\s+/).filter(x => x).length}</span> words
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  {speechStatus.startsWith('error') && (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--rose)', fontWeight: '700' }}>
+                      ⚠️ {speechStatus.replace('error: ', '')}
+                    </span>
+                  )}
+                  {speechStatus === 'requesting' && (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--amber)', fontWeight: '700' }}>
+                      🔄 Requesting mic...
+                    </span>
+                  )}
+                  <button 
+                    onClick={toggleListen}
+                    disabled={speechStatus === 'requesting'}
+                    className="btn-ghost"
+                    style={{ 
+                      background: isListening ? 'rgba(244, 63, 94, 0.1)' : 'transparent', 
+                      borderColor: isListening ? 'rgba(244, 63, 94, 0.4)' : 'var(--border)',
+                      color: isListening ? 'var(--rose)' : 'var(--foreground)',
+                      padding: '0.5rem 1rem', 
+                      fontSize: '0.85rem',
+                      cursor: speechStatus === 'requesting' ? 'wait' : 'pointer',
+                      opacity: speechStatus === 'requesting' ? 0.5 : 1,
+                    }}
+                  >
+                    <span className={isListening ? "badge-glow" : ""} style={{ fontSize: '1rem' }}>🎤</span>
+                    {isListening ? 'Stop' : 'Dictate'}
+                  </button>
+                </div>
+                <span style={{ fontSize: '0.85rem', color: 'var(--indigo)', fontWeight: '700' }}>{answered}/{TOTAL_QUESTIONS} answered</span>
               </div>
             </div>
-          )}
-        </div>
-        
-        <div style={{ padding: '1rem 2rem', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)' }}>
-            <span style={{ color: 'var(--foreground)', fontWeight: '800' }}>{answers[currentIdx].trim().split(/\s+/).filter(x => x).length}</span> words
-          </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              {speechStatus.startsWith('error') && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--rose)', fontWeight: '700' }}>
-                  ⚠️ {speechStatus.replace('error: ', '')}
-                </span>
-              )}
-              {speechStatus === 'requesting' && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--amber)', fontWeight: '700' }}>
-                  🔄 Requesting mic...
-                </span>
-              )}
-              <button 
-                onClick={toggleListen}
-                disabled={speechStatus === 'requesting'}
-                className="btn-ghost"
-                style={{ 
-                  background: isListening ? 'rgba(244, 63, 94, 0.1)' : 'transparent', 
-                  borderColor: isListening ? 'rgba(244, 63, 94, 0.4)' : 'var(--border)',
-                  color: isListening ? 'var(--rose)' : 'var(--foreground)',
-                  padding: '0.5rem 1rem', 
-                  fontSize: '0.85rem',
-                  cursor: speechStatus === 'requesting' ? 'wait' : 'pointer',
-                  opacity: speechStatus === 'requesting' ? 0.5 : 1,
-                }}
-              >
-                <span className={isListening ? "badge-glow" : ""} style={{ fontSize: '1rem' }}>🎤</span>
-                {isListening ? 'Stop' : 'Dictate'}
-              </button>
-            </div>
-            <span style={{ fontSize: '0.85rem', color: 'var(--indigo)', fontWeight: '700' }}>{answered}/{TOTAL_QUESTIONS} answered</span>
-          </div>
-        </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* Navigation */}
