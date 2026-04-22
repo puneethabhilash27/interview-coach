@@ -50,6 +50,124 @@ export const setUserName = (name) => {
   }
 };
 
+// ─── Bookmark Management ───
+
+export const getBookmarks = () => {
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem('bookmarkedQuestions');
+  return stored ? JSON.parse(stored) : [];
+};
+
+export const toggleBookmark = (question) => {
+  if (typeof window === 'undefined') return [];
+  const bookmarks = getBookmarks();
+  const idx = bookmarks.findIndex(b => b.id === question.id);
+  if (idx >= 0) {
+    bookmarks.splice(idx, 1);
+  } else {
+    bookmarks.push({
+      id: question.id,
+      question: question.question,
+      category: question.category,
+      difficulty: question.difficulty,
+      type: question.type,
+      bookmarkedAt: new Date().toISOString()
+    });
+  }
+  localStorage.setItem('bookmarkedQuestions', JSON.stringify(bookmarks));
+  return bookmarks;
+};
+
+export const isBookmarked = (questionId) => {
+  const bookmarks = getBookmarks();
+  return bookmarks.some(b => b.id === questionId);
+};
+
+// ─── Recent Activity Tracking ───
+
+export const getRecentActivity = () => {
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem('recentActivity');
+  return stored ? JSON.parse(stored) : [];
+};
+
+const addRecentActivity = (question, score, extras = {}) => {
+  if (typeof window === 'undefined') return;
+  const activity = getRecentActivity();
+  const filtered = activity.filter(a => a.questionId !== (typeof question === 'object' ? question.id : null));
+  filtered.unshift({
+    questionId: typeof question === 'object' ? question.id : null,
+    question: typeof question === 'object' ? question.question : question,
+    category: typeof question === 'object' ? question.category : 'Unknown',
+    difficulty: typeof question === 'object' ? question.difficulty : 'Normal',
+    score,
+    answer: extras.answer || '',
+    wordCount: extras.wordCount || 0,
+    keywordCoverage: extras.keywordCoverage || 0,
+    usedStar: extras.usedStar || false,
+    timestamp: new Date().toISOString()
+  });
+  const trimmed = filtered.slice(0, 30);
+  localStorage.setItem('recentActivity', JSON.stringify(trimmed));
+};
+
+// ─── Performance Metrics (for radar chart) ───
+
+export const getPerformanceMetrics = () => {
+  const activity = getRecentActivity();
+  if (activity.length === 0) return null;
+
+  const scores = activity.map(a => a.score).filter(s => s != null);
+  const wordCounts = activity.map(a => a.wordCount || 0);
+  const kwCovs = activity.map(a => a.keywordCoverage || 0);
+  const starCount = activity.filter(a => a.usedStar).length;
+
+  const avg = arr => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+  const avgScore = avg(scores);
+  const avgKwCov = avg(kwCovs);
+  const avgWordCount = avg(wordCounts);
+  const starRate = (starCount / activity.length) * 100;
+  const depthRate = Math.min((avgWordCount / 60) * 100, 100);
+
+  // Consistency: inverse of coefficient of variation
+  let consistency = 100;
+  if (scores.length > 1) {
+    const mean = avgScore;
+    const variance = scores.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / scores.length;
+    const stdDev = Math.sqrt(variance);
+    consistency = mean > 0 ? Math.max(0, Math.min(100, 100 - (stdDev / mean) * 100)) : 0;
+  }
+
+  const volume = Math.min((activity.length / 15) * 100, 100);
+
+  return [
+    { label: 'Accuracy', value: Math.round(avgScore), color: 'var(--indigo)' },
+    { label: 'Keyword Match', value: Math.round(avgKwCov), color: 'var(--cyan)' },
+    { label: 'Answer Depth', value: Math.round(depthRate), color: 'var(--emerald)' },
+    { label: 'STAR Method', value: Math.round(starRate), color: 'var(--amber)' },
+    { label: 'Consistency', value: Math.round(consistency), color: 'var(--violet)' },
+    { label: 'Volume', value: Math.round(volume), color: 'var(--rose)' },
+  ];
+};
+
+// ─── Skill Distribution ───
+
+export const getSkillDistribution = () => {
+  const activity = getRecentActivity();
+  const dist = {};
+  activity.forEach(a => {
+    const cat = a.category || 'Unknown';
+    if (!dist[cat]) dist[cat] = { count: 0, totalScore: 0 };
+    dist[cat].count += 1;
+    dist[cat].totalScore += a.score || 0;
+  });
+  return Object.entries(dist).map(([category, data]) => ({
+    category,
+    count: data.count,
+    avgScore: data.count > 0 ? Math.round(data.totalScore / data.count) : 0
+  })).sort((a, b) => b.count - a.count);
+};
+
 export const api = {
   async getQuestions() {
     try {
@@ -83,6 +201,9 @@ export const api = {
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       let leaders = await res.json();
       
+      // Filter out any mocked "You (...)" entries that might come from the backend
+      leaders = leaders.filter(l => !l.name.startsWith('You ('));
+      
       // Inject local user into leaderboard
       const localStats = getLocalStats();
       const userName = localStats?.name || 'Guest';
@@ -100,7 +221,7 @@ export const api = {
     }
   },
 
-  async evaluateAnswer(question, answer) {
+  async evaluateAnswer(question, answer, questionObj = null) {
     try {
       const res = await fetch(`${BASE_URL}/api/evaluate`, {
         method: 'POST',
@@ -127,6 +248,16 @@ export const api = {
           data.level = stats.level;
           data.badge = stats.badge;
         }
+
+        // Track recent activity with richer data
+        const answerText = answer || '';
+        const wordCount = answerText.trim().split(/\s+/).filter(x => x).length;
+        const totalKw = (data.matchedKeywords?.length || 0) + (data.missingKeywords?.length || 0);
+        const keywordCoverage = totalKw > 0 ? Math.round((data.matchedKeywords?.length || 0) / totalKw * 100) : 0;
+        const starWords = ['situation', 'task', 'action', 'result'];
+        const lowerAnswer = answerText.toLowerCase();
+        const usedStar = starWords.filter(w => lowerAnswer.includes(w)).length >= 2;
+        addRecentActivity(questionObj || question, data.score, { answer, wordCount, keywordCoverage, usedStar });
       }
       return data;
     } catch (err) {

@@ -16,8 +16,32 @@ export default function RapidFire() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [streak, setStreak] = useState(0);
+  const [isListening, setIsListening] = useState(false);
+  const [speechStatus, setSpeechStatus] = useState(''); // '', 'requesting', 'listening', 'error:...'
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const listeningRef = useRef(false);
+
+  // Stop dictation when switching questions
+  useEffect(() => {
+    stopListening();
+  }, [currentIdx]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => { stopListening(); };
+  }, []);
+
+  const stopListening = () => {
+    listeningRef.current = false;
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort(); } catch (e) { /* ignore */ }
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+    setSpeechStatus('');
+  };
 
   useEffect(() => {
     api.getQuestions().then(data => { setAllQuestions(data); setLoading(false); }).catch(() => setLoading(false));
@@ -64,6 +88,109 @@ export default function RapidFire() {
     if (currentIdx > 0) setCurrentIdx(currentIdx - 1);
   };
 
+  const toggleListen = async () => {
+    // STOP
+    if (isListening) {
+      stopListening();
+      return;
+    }
+
+    // Check browser support
+    const SR = typeof window !== 'undefined'
+      ? (window.SpeechRecognition || window.webkitSpeechRecognition)
+      : null;
+    if (!SR) {
+      setSpeechStatus('error: Browser not supported');
+      setTimeout(() => setSpeechStatus(''), 3000);
+      return;
+    }
+
+    // Step 1: Explicitly request microphone permission first
+    setSpeechStatus('requesting');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Got permission — stop the stream immediately (we just needed permission)
+      stream.getTracks().forEach(track => track.stop());
+    } catch (err) {
+      console.error('Microphone permission denied:', err);
+      setSpeechStatus('error: Mic denied');
+      setTimeout(() => setSpeechStatus(''), 3000);
+      return;
+    }
+
+    // Step 2: Start speech recognition
+    const idx = currentIdx;
+    const existingText = answers[idx] || '';
+    let committedText = existingText;
+
+    const startRecognition = () => {
+      const recognition = new SR();
+      recognition.lang = 'en-US';
+      recognition.interimResults = true;
+      recognition.continuous = true;
+      recognition.maxAlternatives = 1;
+
+      recognition.onresult = (event) => {
+        let finalText = '';
+        let interimText = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const t = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalText += t + ' ';
+          } else {
+            interimText += t;
+          }
+        }
+
+        if (finalText) {
+          committedText = (committedText + ' ' + finalText).trim();
+        }
+
+        const displayText = finalText
+          ? committedText
+          : (committedText + ' ' + interimText).trim();
+
+        setAnswers(prev => {
+          const copy = [...prev];
+          copy[idx] = displayText;
+          return copy;
+        });
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech error:', event.error);
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          setSpeechStatus('error: Mic denied');
+          stopListening();
+        }
+        // 'no-speech' and 'aborted' are normal during restarts
+      };
+
+      recognition.onend = () => {
+        // Auto-restart if user hasn't stopped
+        if (listeningRef.current) {
+          try {
+            startRecognition();
+          } catch (e) {
+            stopListening();
+          }
+        } else {
+          setIsListening(false);
+          setSpeechStatus('');
+        }
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    };
+
+    listeningRef.current = true;
+    setIsListening(true);
+    setSpeechStatus('listening');
+    startRecognition();
+  };
+
   const submitAll = async () => {
     clearInterval(timerRef.current);
     setPhase('evaluating');
@@ -73,7 +200,7 @@ export default function RapidFire() {
     for (let i = 0; i < gameQuestions.length; i++) {
       const ans = answers[i]?.trim() || '(No answer provided)';
       try {
-        const result = await api.evaluateAnswer(gameQuestions[i].question, ans);
+        const result = await api.evaluateAnswer(gameQuestions[i].question, ans, gameQuestions[i]);
         if (result.score >= 50) currentStreak++; else currentStreak = 0;
         evals.push({ ...result, question: gameQuestions[i].question, answer: ans, category: gameQuestions[i].category, difficulty: gameQuestions[i].difficulty });
       } catch {
@@ -190,8 +317,8 @@ export default function RapidFire() {
                     <div style={{ fontSize: '0.6rem', fontWeight: '700', color: g.color }}>{g.label}</div>
                   </div>
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.02)', padding: '0.6rem 0.8rem', borderRadius: '0.5rem', marginBottom: '0.6rem', lineHeight: '1.5', fontStyle: 'italic' }}>
-                  "{r.answer?.substring(0, 200)}{r.answer?.length > 200 ? '...' : ''}"
+                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.02)', padding: '0.6rem 0.8rem', borderRadius: '0.5rem', marginBottom: '0.6rem', lineHeight: '1.5', fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>
+                  "{r.answer}"
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', fontSize: '0.7rem' }}>
                   {r.feedback?.strengths?.map((s, j) => <span key={j} style={{ color: 'var(--emerald)' }}>✅ {s}</span>)}
@@ -266,7 +393,40 @@ export default function RapidFire() {
             <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>
               <span style={{ color: 'var(--foreground)', fontWeight: '700' }}>{answers[currentIdx].trim().split(/\s+/).filter(x => x).length}</span> words
             </span>
-            <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>{answered}/{TOTAL_QUESTIONS} answered</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {speechStatus.startsWith('error') && (
+                <span style={{ fontSize: '0.65rem', color: 'var(--rose)', fontWeight: '600' }}>
+                  ⚠️ {speechStatus.replace('error: ', '')}
+                </span>
+              )}
+              {speechStatus === 'requesting' && (
+                <span style={{ fontSize: '0.65rem', color: 'var(--amber)', fontWeight: '600' }}>
+                  🔄 Requesting mic...
+                </span>
+              )}
+              <button 
+                onClick={toggleListen}
+                disabled={speechStatus === 'requesting'}
+                style={{ 
+                  background: isListening ? 'rgba(244, 63, 94, 0.15)' : 'rgba(255,255,255,0.05)', 
+                  border: `1px solid ${isListening ? 'rgba(244, 63, 94, 0.4)' : 'transparent'}`,
+                  color: isListening ? 'var(--rose)' : 'var(--muted-foreground)',
+                  padding: '0.3rem 0.6rem', 
+                  borderRadius: '0.5rem', 
+                  fontSize: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  cursor: speechStatus === 'requesting' ? 'wait' : 'pointer',
+                  transition: 'var(--transition-fast)',
+                  opacity: speechStatus === 'requesting' ? 0.5 : 1,
+                }}
+              >
+                <span className={isListening ? "badge-glow" : ""} style={{ fontSize: '0.9rem' }}>🎤</span>
+                {isListening ? 'Stop' : 'Dictate'}
+              </button>
+              <span style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>{answered}/{TOTAL_QUESTIONS} answered</span>
+            </div>
           </div>
         </div>
       </div>
