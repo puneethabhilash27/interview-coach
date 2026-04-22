@@ -62,36 +62,43 @@ add(144, "SQL Indexing strategy", "Backend", "Easy", "Technical", "B-Tree indice
 add(145, "REST vs GraphQL", "Backend", "Normal", "Technical", "REST uses fixed endpoints; GraphQL lets clients define the response shape. GraphQL reduces over-fetching but adds query complexity and caching hurdles.", "2.5 mins");
 
 let questions = qb;
-let userStats = { streak: 0, totalAttempts: 0, scores: [], xp: 0, badge: "Beginner", level: 1 };
 const mockPeers = [ { name: "Sarah AI", xp: 3200, badge: "Pro" }, { name: "David Bot", xp: 1800, badge: "Intermediate" }, { name: "InterviewWizard", xp: 1550, badge: "Intermediate" } ];
 
 router.get('/questions', (req, res) => res.json(questions));
-router.get('/leaderboard', (req, res) => res.json([{ name: "You (Alex)", xp: userStats.xp, badge: userStats.badge }, ...mockPeers].sort((a, b) => b.xp - a.xp)));
-router.get('/user/stats', (req, res) => {
-  const sum = userStats.scores.reduce((a, b) => a + b, 0);
-  const averageScore = userStats.scores.length > 0 ? Math.round(sum / userStats.scores.length) : 0;
-  res.json({ ...userStats, averageScore, history: userStats.scores });
-});
+router.get('/leaderboard', (req, res) => res.json(mockPeers.sort((a, b) => b.xp - a.xp)));
 
 router.post('/evaluate', (req, res) => {
   const { question, answer } = req.body;
   if (!question || !answer) return res.status(400).json({ message: 'Question/Answer required' });
+  
   const questionData = questions.find(q => q.question === question);
   const sampleText = questionData?.sampleAnswer || "";
   const normalize = t => t.toLowerCase().replace(/[^\w\s]/g, '');
+  
   const sampleWords = new Set(normalize(sampleText).split(/\s+/).filter(w => w.length > 3));
   const userWords = new Set(normalize(answer).split(/\s+/).filter(w => w.length > 2));
+  
   let matched = [];
   sampleWords.forEach(w => { if (userWords.has(w)) matched.push(w); });
+  
   const keywordCoverage = sampleWords.size > 0 ? (matched.length / sampleWords.size) : 0;
   const wordCount = normalize(answer).split(/\s+/).length;
   const narrativeDepth = Math.min(wordCount / 45, 1);
   const score = Math.round((keywordCoverage * 80) + (narrativeDepth * 20));
-  userStats.xp += Math.round((score * 1.5) + (wordCount / 4));
-  userStats.totalAttempts += 1; userStats.scores.push(score); userStats.streak += 1;
-  userStats.level = Math.floor(userStats.xp / 1000) + 1;
-  userStats.badge = userStats.level >= 5 ? "Pro" : (userStats.level >= 2 ? "Intermediate" : "Beginner");
-  res.json({ score, feedback: { strengths: ["Professional terminology used.", "Clear structure."], weaknesses: wordCount < 30 ? ["Answer is a bit brief."] : ["No major structural weaknesses."], suggestions: ["Apply the STAR method for even better results."] }, xpGained: 150, badge: userStats.badge, level: userStats.level, matchedKeywords: matched });
+  
+  // Calculate raw xp gained for this specific attempt
+  const xpGained = Math.round((score * 1.5) + (wordCount / 4));
+
+  res.json({ 
+    score, 
+    feedback: { 
+      strengths: ["Professional terminology used.", "Clear structure."], 
+      weaknesses: wordCount < 30 ? ["Answer is a bit brief."] : ["No major structural weaknesses."], 
+      suggestions: ["Apply the STAR method for even better results."] 
+    }, 
+    xpGained, 
+    matchedKeywords: matched 
+  });
 });
 
 module.exports = router;

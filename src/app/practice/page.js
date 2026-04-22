@@ -290,13 +290,22 @@ export default function Practice() {
                   <span>🔥 <span style={{ color: 'var(--foreground)', fontWeight: '700' }}>{filteredQuestions.length}</span> shown</span>
                 </div>
               </div>
-              <a href="/tips" className="glass-panel" style={{ padding: '1.25rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem', transition: 'var(--transition-fast)' }}>
-                <span style={{ fontSize: '1.5rem' }}>📌</span>
-                <div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--foreground)', marginBottom: '0.2rem' }}>Interview Tips & Guide</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>12 tips + platform walkthrough →</div>
-                </div>
-              </a>
+              <div style={{ display: 'flex', gap: '0.6rem' }}>
+                <a href="/tips" className="glass-panel" style={{ flex: 1, padding: '1rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.6rem', transition: 'var(--transition-fast)' }}>
+                  <span style={{ fontSize: '1.25rem' }}>📌</span>
+                  <div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--foreground)', marginBottom: '0.15rem' }}>Tips</div>
+                    <div style={{ fontSize: '0.6rem', color: 'var(--muted-foreground)' }}>12 interview tips →</div>
+                  </div>
+                </a>
+                <a href="/rapid-fire" className="glass-panel" style={{ flex: 1, padding: '1rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.6rem', transition: 'var(--transition-fast)', background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, transparent 100%)' }}>
+                  <span style={{ fontSize: '1.25rem' }}>⚡</span>
+                  <div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--foreground)', marginBottom: '0.15rem' }}>Rapid Fire</div>
+                    <div style={{ fontSize: '0.6rem', color: 'var(--muted-foreground)' }}>5 Q&apos;s, 5 min →</div>
+                  </div>
+                </a>
+              </div>
             </div>
           )}
         </aside>

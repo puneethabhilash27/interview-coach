@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 
 export default function Navbar() {
   const pathname = usePathname();
-  const isAppPage = ['/dashboard', '/practice', '/tips', '/faq'].includes(pathname);
+  const isAppPage = ['/dashboard', '/practice', '/tips', '/faq', '/rapid-fire'].includes(pathname);
 
   return (
     <nav className="nav-container animate-fade-in">
@@ -17,6 +17,7 @@ export default function Navbar() {
           <Link href="/dashboard" className={`nav-link`} style={{ color: pathname === '/dashboard' ? 'var(--foreground)' : undefined }}>📊 Dashboard</Link>
           <Link href="/practice" className={`nav-link`} style={{ color: pathname === '/practice' ? 'var(--foreground)' : undefined }}>💡 Practice</Link>
           <Link href="/tips" className={`nav-link`} style={{ color: pathname === '/tips' ? 'var(--foreground)' : undefined }}>📌 Tips</Link>
+          <Link href="/rapid-fire" className={`nav-link`} style={{ color: pathname === '/rapid-fire' ? 'var(--foreground)' : undefined }}>⚡ Rapid Fire</Link>
           <Link href="/faq" className={`nav-link`} style={{ color: pathname === '/faq' ? 'var(--foreground)' : undefined }}>❓ FAQ</Link>
 
           {!isAppPage && (

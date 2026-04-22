@@ -1,6 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { useState, useEffect, useRef } from 'react';
+import { api, getUserName, setUserName } from '@/lib/api';
 import Link from 'next/link';
 
 export default function Dashboard() {
@@ -8,6 +8,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
+  const [name, setName] = useState('Guest');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const nameRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -18,6 +22,7 @@ export default function Dashboard() {
         ]);
         setStatsData(stats);
         setLeaderboard(leaders);
+        setName(getUserName());
       } catch (err) {
         setError("Sync failed. Ensure backend is running.");
       } finally {
@@ -26,6 +31,27 @@ export default function Dashboard() {
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (isEditingName && nameRef.current) {
+      nameRef.current.focus();
+      nameRef.current.select();
+    }
+  }, [isEditingName]);
+
+  const handleNameSave = () => {
+    const trimmed = nameInput.trim();
+    if (trimmed && trimmed.length > 0) {
+      setUserName(trimmed);
+      setName(trimmed);
+    }
+    setIsEditingName(false);
+  };
+
+  const handleNameKeyDown = (e) => {
+    if (e.key === 'Enter') handleNameSave();
+    if (e.key === 'Escape') setIsEditingName(false);
+  };
 
   const stats = [
     {
@@ -62,7 +88,47 @@ export default function Dashboard() {
             </div>
             <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--emerald)' }}>⭐ Level {statsData?.level || 1}</div>
           </div>
-          <h1 style={{ fontSize: '2rem', marginBottom: '0.75rem', letterSpacing: '-0.03em' }}>Welcome back, <span className="gradient-text">Alex</span> 👋</h1>
+
+          <h1 style={{ fontSize: '2rem', marginBottom: '0.75rem', letterSpacing: '-0.03em', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            Welcome back,{' '}
+            {isEditingName ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                <input
+                  ref={nameRef}
+                  type="text"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  onBlur={handleNameSave}
+                  onKeyDown={handleNameKeyDown}
+                  maxLength={20}
+                  style={{
+                    background: 'rgba(99, 102, 241, 0.1)',
+                    border: '2px solid var(--indigo)',
+                    borderRadius: '0.5rem',
+                    padding: '0.2rem 0.6rem',
+                    fontSize: '1.8rem',
+                    fontWeight: '800',
+                    color: 'var(--foreground)',
+                    width: `${Math.max(nameInput.length, 3) * 1.1 + 1.5}ch`,
+                    outline: 'none',
+                    fontFamily: 'inherit',
+                    letterSpacing: '-0.03em',
+                  }}
+                />
+              </span>
+            ) : (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}
+                    onClick={() => { setNameInput(name); setIsEditingName(true); }}
+                    title="Click to change your name">
+                <span className="gradient-text">{name}</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, flexShrink: 0 }}>
+                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                  <path d="m15 5 4 4"/>
+                </svg>
+              </span>
+            )}
+            {' '}👋
+          </h1>
 
           <div style={{ maxWidth: '350px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: '700', marginBottom: '0.4rem', color: 'var(--muted-foreground)' }}>
@@ -145,9 +211,9 @@ export default function Dashboard() {
                 <div key={i} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '0.625rem 0.75rem',
-                  background: user.name.includes('Alex') ? 'rgba(99, 102, 241, 0.08)' : 'rgba(255,255,255,0.02)',
+                  background: user.isYou ? 'rgba(99, 102, 241, 0.08)' : 'rgba(255,255,255,0.02)',
                   borderRadius: '0.5rem',
-                  border: `1px solid ${user.name.includes('Alex') ? 'rgba(99,102,241,0.3)' : 'var(--border)'}`,
+                  border: `1px solid ${user.isYou ? 'rgba(99,102,241,0.3)' : 'var(--border)'}`,
                   fontSize: '0.85rem'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
